@@ -1,0 +1,101 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\title{linear-quadratic-regulator}
+\author{huangzhengming28@gmail.com}
+\date{February 2026}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+This project is the basic implementation of linear-quadratic-regulator(LQR). A rotation object is studied because it is a simple 2-order linear system.
+
+\section{Key Idea}
+1. State-Feedback control law;\\
+2. Quadratic-Form value function;\\
+3. Dynamic-Programming algorithm;\\
+
+\section{Problem Description}
+Given a linear time-invariant system:
+\begin{equation}
+    x_{t+1} = A x_t + B u_t
+\end{equation}
+and the control Law is:
+\begin{equation}
+    u_t = -K_t x_t
+\end{equation}
+to minimize the value function:
+\begin{equation}
+    J = \sum_{i=0}^{N}{x_t^TQx_t+u_t^TRu_t}
+\end{equation}
+
+In summary, the optimization problem is:
+\begin{gather}
+    \min_{u_0, u_1, ..., u_N}{\sum_{i=0}^{N}{x_t^TQx_t+u_t^TRu_t}} \label{cost_function} \\
+    \text{s.t.} \quad x_{t+1} = A x_t + B u_t \label{system_dynamics}\\
+    \quad u_t = -K_t x_t \label{control_law}
+\end{gather}
+
+\section{Algorithm}
+
+\subsection{Dynamic Programming}
+To use Dynamic-Programming algorithm, we first divide the optimization problem into a group of sub problems. For example, for the step $t$:
+\begin{gather}
+    Q(x_t, u_t) = x_t^T Q x_t + u_t^T R u_t + V(x_{t+1}) \label{sub_problem}\\
+    J = \sum_{t=0}^N{Q(x_t, u_t)}
+\end{gather}
+The algorithm is as follow\\
+For $t=N-1, N-2, ..., 0$:\\
+1. Solve the optimal $\hat{u_t}$ and transform $Q(x_t, u_t)$ to $V(x_t)$ (which is the optimal value of $\hat{Q(x_t, u_t)}$)\\
+2. with $V(x_t)$, $Q(x_{t-1}, u_{t-1})$ can be expressed like \eqref{sub_problem} again
+
+\subsection{Sub Problem Solving}
+For the final step $N$, $V(x_N)$ is known because $x_N$ is determined beforehand and $u_N=0$.
+\begin{equation}
+    V(x_N) = x_N^T P_N x_N \quad \text{where} \quad P_N = Q
+\end{equation}
+So, step $x_{N-1}$ could be solved and producing $V(t_{N-1})$ for the next step. Looping until the first step. In general, for each step,$u_t$ is the variable to be solved for \eqref{sub_problem}:
+\begin{gather}
+    V(x_t) = x_t^T P_t x_t\\
+    \begin{bmatrix}
+        x_t\\
+        u_t
+    \end{bmatrix} = X\\
+    Q(x_t, u_t) = X^T\begin{bmatrix}Q, 0 \\ 0, R \end{bmatrix}X + x_{t+1}^T P_{t+1} x_{t+1}
+\end{gather}
+Considering system dynamics \eqref{system_dynamics}, $x_{t+1}$ is replaced by $x_t, u_t$:
+\begin{gather}
+    Q(x_t, u_t) = X^T\begin{bmatrix}Q, 0 \\ 0, R \end{bmatrix}X + (A x_t + B u_t)^T P_{t+1} (A x_t + B u_t)\\
+    Q(x_t, u_t) = X^T\begin{bmatrix}Q+A^T P_{t+1} A, A^T P_{t+1} B \\ B^T P_{t+1} A, R + B^T P_{t+1} B \end{bmatrix}X\\
+    Q(x_t, u_t) =X^T\begin{bmatrix}Q_{xx}, Q_{xu} \\ Q_{ux}, Q_{uu} \end{bmatrix}X\label{q_value_function}\\
+    Q(x_t, u_t) = x_t^T Q_{xx} x_t + 2x_t^TQ_{xu} u_t + u_t^T Q_{uu} u_t
+\end{gather}
+Let gradient be zero:
+\begin{equation}
+    \frac{\partial{Q(x_t, u_t)}}{\partial{u_t}} = 2x_t^TQ_{xu} + 2Q_{uu} u_t = 0
+\end{equation}
+The optimal $\hat{u_t}$ is solved:
+\begin{gather}
+    \hat{u_t} = -Q_{uu}^{{-1}}Q_{ux} x_t = -K_t x_t\\
+    Q_{xx} = Q+A^T P_{t+1} A\\
+    Q_{xu} = A^T P_{t+1} B\\
+    Q_{ux} = B^T P_{t+1} A\\
+    Q_{uu} = R + B^T P_{t+1} B
+\end{gather}
+In the end, put the optimal control command into \eqref{q_value_function} to get $P_t$:
+\begin{gather}
+    V(x_t) = x_t^T P_t x_t = x_t^T(Q_{xx} - Q_{xu}Q_{uu}^{-1}Q_{ux})x_t\\
+    P_t = Q_{xx} - Q_{xu}Q_{uu}^{-1}Q_{ux}
+\end{gather}
+
+\subsection{Forward Pass}
+The procedure above is called "Backward Pass". after it is done, the only useful information is $K_t(t=0,1,...,N-1)$ which is a series of feedback gain. With this, we calculate the control command $u_t$ and update the states $x_t$ in the normal way, which is called "Forward Pass":\\
+For $t=0,1,...,N-1$:\\
+1. $u_t=-K_t x_t$\\
+2. $x_{t+1} = A x_t + B u_t$\\
+
+\end{document}

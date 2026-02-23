@@ -1,0 +1,113 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\title{iterative-linear-quadratic-regulator}
+\author{huangzhengming28@gmail.com}
+\date{February 2026}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+This project is based on the basic implementation of linear-quadratic-regulator(LQR). LQR is applcated to linear time-invariant system. For nonlinear system, we can use LQR to find the optimal control law. The main idea is to transform the problem into a "differential world". In this world, the problem is equivalent to LQR. So the main work here is about differential.
+
+\section{Differential}
+1. Nonlinear system dynamics
+\begin{equation}
+    x_{t+1} = f(x_t, u_t)
+\end{equation}
+\begin{equation}
+    \delta{x_{t+1}} = \frac{\partial{f}}{\partial{x_t}} \delta{x_t} + \frac{\partial{f}}{\partial{u_t}} \delta{u_t} = A \delta{x_t} + B \delta{u_t}
+\end{equation}
+2. Q value of $x_t, u_t$
+\begin{gather}
+    \begin{bmatrix}
+        \delta{x_t}\\
+        \delta{u_t}
+    \end{bmatrix} = \delta{X}\\
+    \delta{Q(x_t, u_t)} = \frac{1}{2} \delta{X}^T \begin{bmatrix}Q_{xx}, Q_{xu}\\Q_{ux}, Q_{uu} \end{bmatrix} \delta{X} + [Q_x, Q_u] \delta{X} \label{q_value_function}
+\end{gather}
+3. V value of $x_t$
+\begin{gather}
+    \delta{V(x_{t})} = \delta{Q(x_{t})} + \delta{V(x_{t+1})}\\
+    \delta{Q(x_{t}, u_t)} = \delta(x_t^T Q x_t + u_t^T R u_t)=[lx, lu]\delta{X} + \frac{1}{2} \delta{X}^T \begin{bmatrix}
+        l_{xx}, l_{xu}\\
+        l_{ux}, l_{uu}
+    \end{bmatrix} \delta{X}\\
+    \delta{V(x_{t+1})} = [p_{t+1}^T A, p_{t+1}^T B] \delta{X} + \frac{1}{2} \delta{X}^T \begin{bmatrix}
+        A^T P_{t+1} A, A^T P_{t+1} B\\
+        B^T P_{t+1} A, B^T P_{t+1} B
+    \end{bmatrix} \delta{X}
+\end{gather}
+Therefore
+\begin{equation}
+    \delta{V(x_{t})} = \frac{1}{2} \delta{X}^T \begin{bmatrix}
+        l_{xx} + A^T P_{t+1} A, l_{xu} + A^T P_{t+1} B\\
+        l_{ux} + B^T P_{t+1} A, l_{uu} + B^T P_{t+1} B
+    \end{bmatrix} \delta{X} + [l_x + p_{t+1}^T A, l_u + p_{t+1}^T B] \delta{X} \label{v_value_function}
+\end{equation}
+
+\section{Algorithm}
+The algorithm of iLQR is the same as LQR. The key values is optimal feedback gain $K_t$, Q-value-coefficient such as $Q_{uu}$ and V-value-coefficient such as $P_{t+1}$.
+\subsection{Solve optimal control command}
+By focusing on $\delta{u_t}$ with \eqref{q_value_function}, it's optimal value is solved in the same way as LOR:
+\begin{gather}
+    \delta{\hat{u_t}} = -Q_{uu}^{-1}(Q_{ux}x_t + Q_u) = K_t \delta{x_t} + d_t \label{optimal_control_command}\\
+    K_t = -Q_{uu}^{-1} Q_{ux}\\
+    d_t = -Q_{uu}^{-1} Q_u
+\end{gather}
+
+\subsection{Derive Q-value-coefficients}
+With optimal control command $\delta{u_t}$, \eqref{q_value_function} equals to \eqref{v_value_function}, which is:
+\begin{equation}
+    \frac{1}{2} \delta{X}^T \begin{bmatrix}Q_{xx}, Q_{xu}\\Q_{ux}, Q_{uu} \end{bmatrix} \delta{X} + [Q_x, Q_u] \delta{X}\\
+    = \frac{1}{2} \delta{X}^T \begin{bmatrix}
+        l_{xx} + A^T P_{t+1} A, l_{xu} + A^T P_{t+1} B\\
+        l_{ux} + B^T P_{t+1} A, l_{uu} + B^T P_{t+1} B
+    \end{bmatrix} \delta{X} + [l_x + p_{t+1}^T A, l_u + p_{t+1}^T B] \delta{X}
+\end{equation}
+So the Q-value-coefficients are derived:
+\begin{gather}
+    Q_x = l_x + p_{t+1}^T A\\
+    Q_u = l_u + p_{t+1}^T B\\
+    Q_{xx} = l_{xx} + A^T P_{t+1} A\\
+    Q_{xu} = l_{xu} + A^T P_{t+1} B\\
+    Q_{ux} = l_{ux} + B^T P_{t+1} A\\
+    Q_{uu} = l_{uu} + B^T P_{t+1} B
+\end{gather}
+
+\subsection{Derive V-value-coefficient}
+$p_t, P_t$ are used to represent $V(x_t)$ after $\hat{u_t}$ is solved. They are used for next recursion step. With \eqref{q_value_function} by taking in \eqref{optimal_control_command} and focusing on $x_t$:
+\begin{gather}
+    \delta{V(x_t)} = \delta{x_t}^T(Q_{xx} + Q_{xu} K_t + K_t^T Q_{ux} + K_t^TQ_{uu}K_t)\delta{x_t} + (Q_x + Q_u K_t + Q_{xu} d_t + K_t O_{uu} d_t) \delta{x_t}\\
+    = \delta{x_t}^T P_t \delta{x_t} + p_t \delta{x_t}
+\end{gather}
+So the V-value-coefficients are derived:
+\begin{gather}
+    P_t = Q_{xx} + Q_{xu} K_t + K_t^T Q_{ux} + K_t^TQ_{uu}K_t\\
+    p_t = Q_x + Q_u K_t + Q_{xu} d_t + K_t O_{uu} d_t
+\end{gather}
+Final $p_N$ and $P_N$:
+\begin{gather}
+    p_N = \frac{\partial{x_N^T Q x_N}}{\partial{x_N}}\\
+    P_N = \frac{\partial^2{x_N^T Q x_N}}{\partial{x_N}^2}
+\end{gather}
+
+\subsection{Forward Pass}
+Forward Pass is different from LOR. For each iteration j, the state is $\delta{x_t} = x_t^{j} - x_t^{j-1}$, which is the differential between two iterations. The result is:
+\begin{gather}
+    \hat{\delta{u_t}} = K_t \delta{x_t} + d_t\\
+    u_t^j = u_t^{j-1} + \hat{\delta{u_t}} \\
+    x_{t+1}^j = f(x_t^j, u_t^j)
+\end{gather}
+
+\subsection{Iteration Convergence Condition}
+Given a $\epsilon$ and metric $J^i$, iteration ends when:
+\begin{equation}
+    |\frac{J^{j} - J^{j-1}}{J^{j-1}}| < \epsilon
+\end{equation}
+
+\end{document}
