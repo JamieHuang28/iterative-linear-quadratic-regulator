@@ -1,0 +1,57 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\title{Bicycle Model}
+\author{huangzhengming28@gmail.com}
+\date{February 2026}
+
+\begin{document}
+
+\section{Non-linear system dynamics linear quadratic planning}
+Non-linear system dynamics can be transformed into quadratic form by differentiating around current state. Then the local quadratic problem is solved exactly the same as LQR.
+\begin{gather}
+    \underbrace{f(x_t, u_t) - f(\hat{x_t}, \hat{u_t})}_{\bar{f}(\delta_{x_t}, \delta_{u_t})} \approx \underbrace{\nabla_{x_t, u_t} f(\hat{u_t}, \hat{u_t})}_{F_t} \begin{bmatrix}
+        x_t - \hat{x_t} \\ u_t - \hat{u_t}
+    \end{bmatrix} \label{diff-dynamics}
+\end{gather}
+
+\section{Kinematic model of wheeled robot}
+Under the assumption that wheels doesn't slip on the ground, the system dynamics is in non-holonomic type. And it is called "bicycle model". The input of the system is $u=[v \quad \delta]^T$.
+\begin{equation}
+    \begin{bmatrix}
+        \dot x\\ \dot y\\ \dot \theta
+    \end{bmatrix} = \begin{bmatrix}
+        v\cos{\theta}\\
+        v\sin{\theta}\\
+        \frac{v\tan{\delta}}{L}
+    \end{bmatrix} \quad \text{where L is the length of wheel base}
+\end{equation}
+
+Descretized form is:
+\begin{equation}
+    \begin{bmatrix}
+        x_{t + 1}\\ y_{t + 1}\\ \theta_{t + 1}
+    \end{bmatrix} = \begin{bmatrix}
+        x_t + \Delta_t v\cos{\theta}\\
+        y_t + \Delta_t v\sin{\theta}\\
+        \theta_t + \frac{\Delta_t v\tan{\delta}}{L}
+    \end{bmatrix} \label{descret-kinematic-dynamics}
+\end{equation}
+
+Referring to \eqref{diff-dynamics}, the kinematic dynamics is transformed:\\
+\begin{equation}
+\begin{aligned}
+    \nabla_{x_t, u_t} f(\hat{x_t}, \hat{u_t}) & = \begin{bmatrix}
+        \frac{\partial{f}}{\partial{x_t}} \quad \frac{\partial{f}}{\partial{u_t}}
+    \end{bmatrix}\\
+    & = \begin{bmatrix}
+        1 \quad 0 \quad \Delta_t v \sin{\theta} \quad & \Delta_t \cos{\theta} \quad 0 \\
+        0 \quad 1 \quad \Delta_t v \cos{\theta} \quad & \Delta_t \sin{\theta} \quad 0 \\
+        0 \quad 0 \quad            1            \quad & \frac{\Delta_t \tan{\delta}}{L} \quad \frac{\Delta_t v}{L\cos{\delta}^2}
+    \end{bmatrix}
+\end{aligned}
+\end{equation}
+
+\end{document}
