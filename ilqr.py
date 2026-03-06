@@ -82,7 +82,7 @@ def backward_pass_linear(A, B, Q, R, xs, us, Ks, ds, x_ref=None, u_ref=None):
         )
 
 
-def backward_pass_tv(get_AB, get_l_coeffs, xs, us, xs_ref, us_ref, Q, R, Ks, ds):
+def backward_pass_time_variant_model(get_AB, get_l_coeffs, xs, us, xs_ref, us_ref, Q, R, Ks, ds):
     """
     iLQR backward pass for time-varying/nonlinear system.
     get_AB(t) -> (A_t, B_t), get_l_coeffs(t) -> (l_xx, l_xu, l_ux, l_uu, l_x, l_u)
@@ -137,7 +137,7 @@ def forward_pass_linear(x0, A, B, Ks, ds, xs, us):
         xs[t + 1] = (A @ xs[t].reshape(-1, 1) + B @ us[t].reshape(-1, 1)).flatten()
 
 
-def forward_pass_nonlinear(x0, dynamics_fn, dt, Ks, ds, xs, us, alpha=1.0):
+def forward_pass_nonlinear_model(x0, dynamics_fn, dt, Ks, ds, xs, us, alpha=1.0):
     """
     iLQR forward pass for nonlinear system: x_{t+1} = dynamics_fn(x_t, u_t, dt).
     delta_u_t = alpha * (K_t delta_x_t + d_t), u_t = u_prev + delta_u_t
@@ -232,4 +232,4 @@ if __name__ == "__main__":
     print("Total fuel_approx used:", fuel_approx)
     fuel = np.sum(abs(accel) * 1.0 * xs[:-1, 0]) * delta_t
     print("Fuel used:", fuel)
-    plt.savefig("result.png")
+    plt.savefig("ufo_rotation_control_ilqr.png")

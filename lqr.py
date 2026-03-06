@@ -54,6 +54,10 @@ def forward_pass(A, B, Ks, us, xs):
         xs[i+1] = A @ xs[i] + B @ us[i]
 
 if __name__ == "__main__":
+    """
+    This is a simple example of UFO rotation control. Please refer to https://www.youtube.com/watch?v=E_RDCFOlJx4 (in English)
+    or https://www.bilibili.com/video/BV1bF41197HJ/?spm_id_from=333.1391.0.0&vd_source=5d69ac08bd10beeee8c1070d4d354bed (in Chinese)
+    """
     # xs is N multiples of x0
     xs = np.zeros((N, x0.shape[0]))
     xs[0] = x0.T
@@ -78,4 +82,4 @@ if __name__ == "__main__":
     fuel = np.sum(abs(accel)*1.0*xs[:-1, 0]) * delta_t
     print('Fuel used:', fuel)
     # save the fig to .png file
-    plt.savefig('result.png')
+    plt.savefig('ufo_rotation_control_lqr.png')

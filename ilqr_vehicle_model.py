@@ -1,6 +1,6 @@
 """
-iLQR for Bicycle Model (augmented)
-Implements augmented discrete bicycle model [x, y, theta, delta] with inputs [v, dot_delta].
+iLQR for Vehicle Model (augmented)
+Implements augmented discrete vehicle model [x, y, theta, delta] with inputs [v, dot_delta].
 Uses ilqr module for cost computation, backward pass, and forward pass.
 """
 
@@ -10,11 +10,11 @@ import matplotlib.pyplot as plt
 from ilqr import (
     compute_cost,
     compute_cost_coefficients,
-    backward_pass_tv,
-    forward_pass_nonlinear,
+    backward_pass_time_variant_model,
+    forward_pass_nonlinear_model,
 )
 
-# Parameters from ilqr_bicycle_model.md
+# Parameters from ilqr_vehicle_model.md
 L = 2.8
 DELTA_MAX = 0.5
 DELTA_MIN = -0.5
@@ -27,9 +27,9 @@ Q_COST = np.diag([1.0, 1.0, 0.0, 0.0])  # [x, y, theta, delta]
 R_COST = np.diag([0.1, 1.0])  # [v, dot_delta] - strong penalty on steering rate
 
 
-def bicycle_dynamics_augmented(x, u, dt):
+def vehicle_dynamics_augmented(x, u, dt):
     """
-    Augmented bicycle model: state includes delta so we can penalize dot_delta.
+    Augmented vehicle model: state includes delta so we can penalize dot_delta.
     State: x = [x, y, theta, delta]
     Input: u = [v, dot_delta]
     """
@@ -44,7 +44,7 @@ def bicycle_dynamics_augmented(x, u, dt):
     return np.array([x_next, y_next, theta_next, delta_next])
 
 
-def bicycle_diff_dynamics_augmented(x, u, dt):
+def vehicle_diff_dynamics_augmented(x, u, dt):
     """
     Jacobians for augmented model. Returns A (4x4), B (4x2).
     """
@@ -81,7 +81,7 @@ def simulate_trajectory(x0, us, dt):
     xs[0] = x0
 
     for t in range(N):
-        xs[t + 1] = bicycle_dynamics_augmented(xs[t], us[t], dt)
+        xs[t + 1] = vehicle_dynamics_augmented(xs[t], us[t], dt)
 
     return xs
 
@@ -181,24 +181,24 @@ def generate_figure8_reference(A, B, v_ref, dt, num_steps):
 
 
 def _ilqr_backward_pass(xs, us, xs_ref, us_ref, dt, Q, R, Ks, ds):
-    """iLQR backward pass for bicycle model via ilqr.backward_pass_tv."""
+    """iLQR backward pass for vehicle model via ilqr.backward_pass_tv."""
     def get_AB(i):
-        return bicycle_diff_dynamics_augmented(xs[i], us[i], dt)
+        return vehicle_diff_dynamics_augmented(xs[i], us[i], dt)
 
     def get_l_coeffs(i):
         return compute_cost_coefficients(
             xs[i], us[i], xs_ref[i], us_ref[i], Q, R
         )
 
-    backward_pass_tv(
+    backward_pass_time_variant_model(
         get_AB, get_l_coeffs, xs, us, xs_ref, us_ref, Q, R, Ks, ds
     )
 
 
 def _ilqr_forward_pass(x0, xs, us, Ks, ds, dt, alpha=1.0):
-    """iLQR forward pass for bicycle model via ilqr.forward_pass_nonlinear."""
-    forward_pass_nonlinear(
-        x0, bicycle_dynamics_augmented, dt, Ks, ds, xs, us, alpha
+    """iLQR forward pass for vehicle model via ilqr.forward_pass_nonlinear."""
+    forward_pass_nonlinear_model(
+        x0, vehicle_dynamics_augmented, dt, Ks, ds, xs, us, alpha
     )
 
 
@@ -220,7 +220,7 @@ def plot_circular_trajectory(x0, xs, us, radius, dt, save_path="circular_traject
     )
     axes[0].set_xlabel("x")
     axes[0].set_ylabel("y")
-    axes[0].set_title("Circular Trajectory (Augmented Bicycle Model)")
+    axes[0].set_title("Circular Trajectory (Augmented Vehicle Model)")
     axes[0].axis("equal")
     axes[0].legend()
     axes[0].grid(True)
@@ -241,7 +241,7 @@ def plot_circular_trajectory(x0, xs, us, radius, dt, save_path="circular_traject
     else:
         plt.close()
 
-def plot_figure8_tracking(xs_ref, xs_nom, us_ref, us_nom, x0_aug, dt, save_path="figure8_ilqr.png"):
+def plot_figure8_tracking(xs_ref, xs_nom, us_ref, us_nom, x0_aug, dt, save_path="figure8_ilqr_vehicle_model.png"):
     """Plot figure-8 tracking results."""
     N = len(us_nom)
     ts = np.arange(N + 1) * dt
