@@ -1,4 +1,4 @@
-# iLOR(iterative linear quadratic regulator)
+# iLQR(iterative linear quadratic regulator)
 iLOR(iterative linear quadratic regulator) is a variant of the LQR(linear quadratic regulator) method for application in nonlinear dynamic system. This project provides:
 - Example of UFO Rotation Control
 - Example of Vehicle Driving Control
